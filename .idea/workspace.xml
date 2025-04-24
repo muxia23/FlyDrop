@@ -4,12 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="d1a0f6f6-fa24-452b-9d0f-762b16d9bc44" name="更改" comment="文件传输逻辑几乎完成">
+    <list default="true" id="d1a0f6f6-fa24-452b-9d0f-762b16d9bc44" name="更改" comment="新增了需要访问">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/file_server.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/file_server.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/config.json" beforeDir="false" afterPath="$PROJECT_DIR$/config.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/file_browser.py" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/file_browser.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/settings_dialog.py" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/settings_dialog.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -108,13 +105,22 @@
       <option name="project" value="LOCAL" />
       <updated>1745479534426</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="新增了需要访问">
+      <option name="closed" value="true" />
+      <created>1745484965709</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1745484965709</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="project struct" />
     <MESSAGE value="upd 和 文件下拉 及 部分 UI 完成" />
     <MESSAGE value="文件传输逻辑几乎完成" />
-    <option name="LAST_COMMIT_MESSAGE" value="文件传输逻辑几乎完成" />
+    <MESSAGE value="新增了需要访问" />
+    <option name="LAST_COMMIT_MESSAGE" value="新增了需要访问" />
   </component>
 </project>
