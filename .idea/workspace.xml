@@ -4,12 +4,17 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="d1a0f6f6-fa24-452b-9d0f-762b16d9bc44" name="更改" comment="project struct">
-      <change afterPath="$PROJECT_DIR$/backend/device_discovery.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/file_server.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/file_browser.py" afterDir="false" />
+    <list default="true" id="d1a0f6f6-fa24-452b-9d0f-762b16d9bc44" name="更改" comment="upd 和 文件下拉 及 部分 UI 完成">
+      <change afterPath="$PROJECT_DIR$/config.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/settings_dialog.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/run_gui.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/start_all.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/device_discovery.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/device_discovery.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/file_server.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/file_server.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/config.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/file_browser.py" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/file_browser.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirement.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirement.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -42,7 +47,9 @@
   &quot;associatedIndex&quot;: 1
 }</component>
   <component name="ProjectId" id="2vqdbSJvGWVeCEcYqkPO00dAcaL" />
-  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
@@ -50,10 +57,12 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "Python.__init__.executor": "Run",
+    "Python.config.executor": "Run",
     "Python.discovery.executor": "Run",
     "Python.file_browser.executor": "Run",
     "Python.file_server.executor": "Run",
     "Python.main.executor": "Run",
+    "Python.start_all.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "git-widget-placeholder": "main"
   }
@@ -88,11 +97,20 @@
       <option name="project" value="LOCAL" />
       <updated>1745415688628</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="upd 和 文件下拉 及 部分 UI 完成">
+      <option name="closed" value="true" />
+      <created>1745422658604</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1745422658604</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="project struct" />
-    <option name="LAST_COMMIT_MESSAGE" value="project struct" />
+    <MESSAGE value="upd 和 文件下拉 及 部分 UI 完成" />
+    <option name="LAST_COMMIT_MESSAGE" value="upd 和 文件下拉 及 部分 UI 完成" />
   </component>
 </project>

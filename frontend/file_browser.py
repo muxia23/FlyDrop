@@ -1,4 +1,5 @@
 from backend.device_discovery import DeviceDiscoveryThread, BroadcastThread, get_device_name
+from frontend.settings_dialog import SettingsDialog
 import sys
 import requests
 from PySide6.QtWidgets import (
@@ -23,6 +24,8 @@ class FileBrowser(QMainWindow):
         self.current_path = ""
         self.filter_text = ""
 
+        self.base_url = "http://localhost:8010"
+
         # 按钮：切换显示隐藏文件
         self.toggle_button = QPushButton("显示隐藏文件")
         self.toggle_button.clicked.connect(self.toggle_hidden)
@@ -45,6 +48,10 @@ class FileBrowser(QMainWindow):
         self.device_box.currentIndexChanged.connect(self.on_device_changed)
         self.device_map = {}  # 设备名称 -> IP
 
+        # 设置
+        self.settings_button = QPushButton("⚙ 设置")
+        self.settings_button.clicked.connect(self.open_settings)
+
         # 顶部布局
         top_layout = QHBoxLayout()
         top_layout.addWidget(self.device_box)
@@ -52,6 +59,7 @@ class FileBrowser(QMainWindow):
         top_layout.addWidget(self.search_input)
         top_layout.addWidget(self.refresh_button)
         top_layout.addWidget(self.download_button)
+        top_layout.addWidget(self.settings_button)
 
         # 主体布局
         layout = QVBoxLayout()
@@ -67,7 +75,7 @@ class FileBrowser(QMainWindow):
         self.discovery_thread = DeviceDiscoveryThread(self.add_device)
         self.discovery_thread.start()
 
-        self.broadcast_thread = BroadcastThread(get_device_name())
+        self.broadcast_thread = BroadcastThread()
         self.broadcast_thread.start()
 
     def add_device(self, name, ip):
@@ -75,12 +83,12 @@ class FileBrowser(QMainWindow):
             self.device_box.addItem(name)
             self.device_map[name] = ip
         # 默认使用第一个设备 IP 作为文件列表请求地址
-        self.base_url = f"http://{self.device_map[self.device_box.currentText()]}:8000"
+        self.base_url = f"http://{self.device_map[self.device_box.currentText()]}:8010"
 
     def on_device_changed(self):
         name = self.device_box.currentText()
         if name in self.device_map:
-            self.base_url = f"http://{self.device_map[name]}:8000"
+            self.base_url = f"http://{self.device_map[name]}:8010"
             self.refresh()
 
     def toggle_hidden(self):
@@ -167,6 +175,10 @@ class FileBrowser(QMainWindow):
             QMessageBox.information(self, "成功", f"文件已保存到：\n{save_path}")
         except Exception as e:
             QMessageBox.critical(self, "错误", f"下载失败：{e}")
+
+    def open_settings(self):
+        dialog = SettingsDialog(self)
+        dialog.exec()
 
 
 

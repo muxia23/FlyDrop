@@ -1,0 +1,9 @@
+# 后端依赖
+fastapi
+uvicorn
+
+# 前端依赖（PySide6）
+PySide6
+
+# 可选：支持 http 请求（前端使用 requests）
+requests
