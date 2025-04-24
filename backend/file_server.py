@@ -1,6 +1,6 @@
 # backend/file_server.py
-
-from fastapi import FastAPI, HTTPException, Query
+from backend.config import load_config
+from fastapi import FastAPI, HTTPException, Request, Query
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 import os
@@ -22,7 +22,14 @@ app.add_middleware(
 )
 
 @app.get("/list")
-def list_files(path: str = Query(default="")):
+def list_files(request: Request, path: str = Query(default="")):
+    config = load_config()
+    expected_password = config.get("access_password", "")
+    auth = request.headers.get("Authorization")
+
+    if expected_password and auth != expected_password:
+        raise HTTPException(status_code=403, detail="密码错误")
+
     abs_path = os.path.abspath(os.path.join(SHARED_ROOT, path))
     if not abs_path.startswith(os.path.abspath(SHARED_ROOT)):
         raise HTTPException(status_code=403, detail="非法路径（越界）")

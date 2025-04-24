@@ -1,6 +1,7 @@
 {
-  "device_name": "M2xal3u",
+  "device_name": "MacBook-Pro",
   "broadcast_enabled": true,
   "share_port": 17257,
-  "share_path": "/Users/macbook/Downloads"
+  "share_path": "/Users/macbook/Downloads",
+  "access_password": "eric0623"
 }

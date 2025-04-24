@@ -7,13 +7,14 @@ from PySide6.QtWidgets import (
     QVBoxLayout, QWidget, QPushButton, QHBoxLayout, QLineEdit,
     QFileDialog, QMessageBox, QComboBox
 )
+from PySide6.QtWidgets import QInputDialog
 from PySide6.QtCore import Qt
 
 
 class FileBrowser(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("LAN 文件共享助手")
+        self.setWindowTitle("FlyDrop")
         self.setGeometry(100, 100, 600, 400)
 
         self.tree = QTreeWidget()
@@ -25,6 +26,7 @@ class FileBrowser(QMainWindow):
         self.filter_text = ""
 
         self.base_url = "http://localhost:8010"
+        self.access_password = ""  # 用户访问其他设备的密码
 
         # 按钮：切换显示隐藏文件
         self.toggle_button = QPushButton("显示隐藏文件")
@@ -51,6 +53,7 @@ class FileBrowser(QMainWindow):
         # 设置
         self.settings_button = QPushButton("⚙ 设置")
         self.settings_button.clicked.connect(self.open_settings)
+
 
         # 顶部布局
         top_layout = QHBoxLayout()
@@ -108,7 +111,8 @@ class FileBrowser(QMainWindow):
         self.current_path = path
         try:
             url = f"{self.base_url}/list"
-            response = requests.get(url, params={"path": path})
+            headers = {"Authorization": self.access_password} if self.access_password else {}
+            response = requests.get(url, params={"path": path}, headers=headers)
             response.raise_for_status()
             data = response.json()
 
@@ -165,7 +169,8 @@ class FileBrowser(QMainWindow):
 
         try:
             url = f"{self.base_url}/download"
-            response = requests.get(url, params={"path": file_path}, stream=True)
+            headers = {"Authorization": self.access_password}
+            response = requests.get(url, params={"path": file_path}, headers=headers, stream=True)
             response.raise_for_status()
 
             with open(save_path, "wb") as f:
