@@ -1,6 +1,7 @@
 # 后端依赖
 fastapi
 uvicorn
+pyopenssl
 
 # 前端依赖（PySide6）
 PySide6
