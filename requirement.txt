@@ -2,6 +2,7 @@
 fastapi
 uvicorn
 pyopenssl
+pyperclip
 
 # 前端依赖（PySide6）
 PySide6

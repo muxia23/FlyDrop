@@ -1,18 +1,15 @@
+# frontend/config.py
 import json
 import os
 
 CONFIG_PATH = "config.json"
 
 DEFAULTS = {
-    "share_path": os.path.expanduser("~/"),
     "port": 8010,
-    "device_name": "未命名设备",
     "discovery_port": 17257,
     "access_password": "",
-    "allowed_ips": ["127.0.0.1"],
-    "https_enabled": True,
-    "cert_path": "cert.pem",
-    "key_path": "key.pem"
+    "base_url": "https://localhost:8010",
+    "download_dir": os.path.expanduser("~/Downloads")
 }
 
 def get_settings():
