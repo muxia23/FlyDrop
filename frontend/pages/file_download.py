@@ -1,12 +1,15 @@
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTreeWidget,
-    QTreeWidgetItem, QFileDialog, QMessageBox, QLabel, QComboBox, QProgressDialog, QApplication
+    QTreeWidgetItem, QFileDialog, QMessageBox, QLabel, QComboBox,
+    QProgressDialog, QApplication
 )
 from PySide6.QtCore import Qt
 from frontend.config import get_settings
 from frontend.pages.settings_dialog import SettingsDialog
+from frontend.threads.downloader import FileDownloadThread
 import requests
 import os
+import uuid
 
 class FileDownloadPage(QWidget):
     def __init__(self):
@@ -30,7 +33,9 @@ class FileDownloadPage(QWidget):
         self.refresh_button = QPushButton("刷新")
         self.download_button = QPushButton("下载")
         self.settings_button = QPushButton("⚙ 设置")
+        self.zip_button = QPushButton("打包下载")
 
+        self.zip_button.clicked.connect(self.download_zip)
         self.toggle_hidden_button.clicked.connect(self.toggle_hidden)
         self.refresh_button.clicked.connect(self.refresh_root)
         self.download_button.clicked.connect(self.download_selected_file)
@@ -53,6 +58,7 @@ class FileDownloadPage(QWidget):
         top_layout.addWidget(self.toggle_hidden_button)
         top_layout.addWidget(self.refresh_button)
         top_layout.addWidget(self.download_button)
+        top_layout.addWidget(self.zip_button)
         top_layout.addWidget(self.settings_button)
 
         layout = QVBoxLayout(self)
@@ -140,40 +146,37 @@ class FileDownloadPage(QWidget):
             name = item.text(0)
 
             if item.childCount() > 0:
-                QMessageBox.information(self, "提示", f"跳过文件夹：{name}")
+                QMessageBox.information(self, "跳过", f"{name} 是文件夹，无法下载。")
                 continue
 
             save_path = os.path.join(download_dir, name)
+            url = f"{self.base_url}/api/files/download"
+            headers = {"Authorization": self.access_password}
+            params = {"path": file_path}
+            full_url = requests.Request("GET", url, params=params).prepare().url
 
-            try:
-                url = f"{self.base_url}/api/files/download"
-                headers = {"Authorization": self.access_password}
-                r = requests.get(url, params={"path": file_path}, headers=headers, stream=True, verify=False)
-                r.raise_for_status()
+            progress = QProgressDialog(f"{name} 下载中...", "取消", 0, 100, self)
+            progress.setWindowTitle("文件下载")
+            progress.setValue(0)
+            progress.setCancelButton(None)
 
-                total_size = int(r.headers.get('Content-Length', 0))
-                downloaded = 0
+            thread = FileDownloadThread(full_url, headers, save_path)
+            thread.progress.connect(lambda val: self.update_progress(progress, val))
+            thread.finished.connect(lambda n: self.download_success(progress, n))
+            thread.failed.connect(lambda n, err: self.download_fail(progress, n, err))
+            thread.start()
 
-                progress = QProgressDialog(f"下载 {name}...", "取消", 0, total_size, self)
-                progress.setWindowTitle("文件下载中")
-                progress.setValue(0)
-                progress.setMinimumDuration(0)
-                progress.setCancelButton(None)
+    def update_progress(self, progress, val):
+        progress.setValue(val)
 
-                with open(save_path, "wb") as f:
-                    for chunk in r.iter_content(8192):
-                        if not chunk:
-                            continue
-                        f.write(chunk)
-                        downloaded += len(chunk)
-                        progress.setValue(downloaded)
-                        QApplication.processEvents()
+    def download_success(self, progress, name):
+        progress.setValue(progress.maximum())
+        QMessageBox.information(self, "完成", f"{name} 下载完成。")
+        progress.close()
 
-                progress.setValue(total_size)
-                QMessageBox.information(self, "完成", f"{name} 已保存到:\n{save_path}")
-
-            except Exception as e:
-                QMessageBox.critical(self, "下载失败", f"{name} 下载失败：{e}")
+    def download_fail(self, progress, name, err):
+        QMessageBox.critical(self, "下载失败", f"{name} 下载失败：{err}")
+        progress.close()
 
     def open_settings_dialog(self):
         dialog = SettingsDialog(self)
@@ -182,3 +185,60 @@ class FileDownloadPage(QWidget):
             self.base_url = self.config["base_url"]
             self.access_password = self.config["access_password"]
             self.refresh_root()
+
+    def download_zip(self):
+        items = self.tree.selectedItems()
+        if not items:
+            QMessageBox.warning(self, "未选择", "请选择要打包的文件或文件夹")
+            return
+
+        paths = []
+        for item in items:
+            file_path = item.data(0, Qt.UserRole)
+            paths.append(file_path)
+
+        # 请求后端生成压缩包
+        url = f"{self.base_url}/api/files/zip"
+        headers = {"Authorization": self.access_password}
+
+        try:
+            response = requests.get(
+                url,
+                params={"paths": ",".join(paths)},
+                headers=headers,
+                stream=True,
+                verify=False
+            )
+            response.raise_for_status()
+
+            # 获取后端返回的文件名
+            zip_filename = response.headers.get("X-Zip-Filename", "default.zip")
+
+            save_path = os.path.join(
+                self.config.get("download_dir", os.path.expanduser("~/Downloads/FlyDrop")),
+                zip_filename
+            )
+
+            total_size = int(response.headers.get("Content-Length", 0))
+            progress = QProgressDialog("正在打包下载...", "取消", 0, total_size, self)
+            progress.setWindowTitle("正在下载压缩包")
+            progress.setMinimumDuration(0)
+            progress.setCancelButton(None)
+            progress.setValue(0)
+
+            downloaded = 0
+            with open(save_path, "wb") as f:
+                for chunk in response.iter_content(8192):
+                    if not chunk:
+                        continue
+                    f.write(chunk)
+                    downloaded += len(chunk)
+                    progress.setValue(downloaded)
+                    QApplication.processEvents()
+
+            progress.setValue(total_size)
+            QMessageBox.information(self, "完成", f"打包文件已保存到:\n{save_path}")
+            progress.close()
+
+        except Exception as e:
+            QMessageBox.critical(self, "错误", f"打包下载失败: {e}")
