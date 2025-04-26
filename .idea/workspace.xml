@@ -4,13 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="d1a0f6f6-fa24-452b-9d0f-762b16d9bc44" name="更改" comment="上次有一个下载进度条忘记说了">
-      <change afterPath="$PROJECT_DIR$/backend/api/devices.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/core/device_manager.py" afterDir="false" />
+    <list default="true" id="d1a0f6f6-fa24-452b-9d0f-762b16d9bc44" name="更改" comment="上次有一个下载进度条忘记说了，前端发现设备逻辑完善，允许手动添加设备">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/core/device_discovery.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/core/device_discovery.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/pages/file_download.py" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/pages/file_download.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/threads/downloader.py" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/threads/downloader.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -60,6 +57,7 @@
     "Python.file_server.executor": "Run",
     "Python.main.executor": "Run",
     "Python.security.executor": "Run",
+    "Python.settings_dialog.executor": "Run",
     "Python.start_all.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "git-widget-placeholder": "main"
@@ -151,7 +149,15 @@
       <option name="project" value="LOCAL" />
       <updated>1745589865991</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="上次有一个下载进度条忘记说了，前端发现设备逻辑完善，允许手动添加设备">
+      <option name="closed" value="true" />
+      <created>1745649825407</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1745649825407</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -164,6 +170,7 @@
     <MESSAGE value="增加了粘贴板共享功能，重构了前端，目前支持多选文件下载" />
     <MESSAGE value="上次的文档日志忘记说了，这次前后端升级支持了 zip 打包下载和文件夹下载" />
     <MESSAGE value="上次有一个下载进度条忘记说了" />
-    <option name="LAST_COMMIT_MESSAGE" value="上次有一个下载进度条忘记说了" />
+    <MESSAGE value="上次有一个下载进度条忘记说了，前端发现设备逻辑完善，允许手动添加设备" />
+    <option name="LAST_COMMIT_MESSAGE" value="上次有一个下载进度条忘记说了，前端发现设备逻辑完善，允许手动添加设备" />
   </component>
 </project>
