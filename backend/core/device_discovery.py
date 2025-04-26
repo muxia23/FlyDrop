@@ -4,8 +4,10 @@ import time
 import json
 import platform
 from backend.config import get_settings
+from backend.core.device_manager import device_manager
 
 _discovered = {}  # 设备名称 -> IP 映射表（全局缓存）
+
 
 class DeviceDiscoveryThread(threading.Thread):
     def __init__(self, on_device_found):
@@ -31,11 +33,12 @@ class DeviceDiscoveryThread(threading.Thread):
                 name = info.get("name", addr[0])
                 ip = addr[0]
 
-                if name not in _discovered:
-                    _discovered[name] = ip
-                    print(f"✅ 发现设备: {name} @ {ip}")
+                # ✅ 更新全局设备缓存
+                device_manager.update_device(name, ip)
 
+                # ✅ 通知 UI 回调
                 self.on_device_found(name, ip)
+
             except socket.timeout:
                 continue
             except Exception as e:

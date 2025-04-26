@@ -3,12 +3,11 @@
 import uvicorn
 from fastapi import FastAPI
 from backend.config import get_settings, save_settings
-from backend.api import files
 from backend.cert_manager.cert_manager import ensure_https_cert, get_local_ip
 from fastapi.middleware.cors import CORSMiddleware
 import socket
 from backend.core.device_discovery import DeviceDiscoveryService
-from backend.api import clipboard
+from backend.api import clipboard, files, devices
 import threading
 
 service = None  # 全局广播服务实例
@@ -23,6 +22,7 @@ app.add_middleware(
 
 app.include_router(files.router, prefix="/api/files")
 app.include_router(clipboard.router, prefix="/api/clipboard")
+app.include_router(devices.router, prefix="/api")
 
 @app.get("/")
 def root():

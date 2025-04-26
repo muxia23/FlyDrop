@@ -1,9 +1,9 @@
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTreeWidget,
     QTreeWidgetItem, QFileDialog, QMessageBox, QLabel, QComboBox,
-    QProgressDialog, QApplication
+    QProgressDialog, QApplication, QInputDialog
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from frontend.config import get_settings
 from frontend.pages.settings_dialog import SettingsDialog
 from frontend.threads.downloader import FileDownloadThread
@@ -19,6 +19,7 @@ class FileDownloadPage(QWidget):
         self.base_url = self.config["base_url"]
         self.access_password = self.config["access_password"]
         self.show_hidden = False  # 默认隐藏 . 文件夹和文件
+        self.manual_devices = {}  # 🟡 记录手动添加的设备 {name: url}
 
         self.tree = QTreeWidget()
         self.tree.setHeaderLabels(["文件名"])
@@ -27,6 +28,10 @@ class FileDownloadPage(QWidget):
 
         self.tree.setHeaderLabels(["文件名"])
         self.tree.setSelectionMode(QTreeWidget.ExtendedSelection)
+
+        self.device_refresh_timer = QTimer()
+        self.device_refresh_timer.timeout.connect(self.fetch_devices)
+        self.device_refresh_timer.start(5000)  # 每5秒刷新一次
 
         # 控件
         self.toggle_hidden_button = QPushButton("显示隐藏文件")
@@ -44,6 +49,8 @@ class FileDownloadPage(QWidget):
         self.device_selector = QComboBox()
         self.device_selector.addItem("本机")
         self.device_selector.currentIndexChanged.connect(self.change_device)
+        self.add_device_button = QPushButton("添加设备")
+        self.add_device_button.clicked.connect(self.add_manual_device)
 
         self.devices = {
             "本机": "https://localhost:8010",
@@ -54,6 +61,7 @@ class FileDownloadPage(QWidget):
         top_layout = QHBoxLayout()
         top_layout.addWidget(QLabel("设备："))
         top_layout.addWidget(self.device_selector)
+        top_layout.addWidget(self.add_device_button)
         top_layout.addStretch()
         top_layout.addWidget(self.toggle_hidden_button)
         top_layout.addWidget(self.refresh_button)
@@ -68,9 +76,10 @@ class FileDownloadPage(QWidget):
         self.load_directory("")
 
     def change_device(self):
-        name = self.device_selector.currentText()
-        self.base_url = self.devices.get(name, self.base_url)
-        self.refresh_root()
+        ip_url = self.device_selector.currentData()
+        if ip_url:
+            self.base_url = ip_url
+            self.refresh_root()
 
     def refresh_root(self):
         self.tree.clear()
@@ -242,3 +251,73 @@ class FileDownloadPage(QWidget):
 
         except Exception as e:
             QMessageBox.critical(self, "错误", f"打包下载失败: {e}")
+
+    def fetch_devices(self):
+        try:
+            url = "https://localhost:8010/api/devices"
+            headers = {"Authorization": self.access_password}
+            response = requests.get(url, headers=headers, verify=False)
+            response.raise_for_status()
+            data = response.json()
+
+            if not isinstance(data, list):
+                print("⚠️ 非法设备响应:", data)
+                return
+
+            current_devices = {}
+
+            # 保持现有本机
+            current_devices.update({
+                "本机": "https://localhost:8010"
+            })
+
+            for dev in data:
+                name = dev["name"]
+                ip = dev["ip"]
+                current_devices[name] = f"https://{ip}:{self.config['port']}"
+
+            self.update_devices(current_devices)
+
+        except Exception as e:
+            print(f"设备列表刷新失败: {e}")
+
+    def update_devices(self, discovered_devices):
+        current_selection = self.device_selector.currentText()
+
+        # 合并所有设备
+        all_devices = {
+            **{"本机": "https://localhost:8010"},
+            **discovered_devices,
+            **self.manual_devices  # ✅ 手动设备保留
+        }
+
+        self.devices = all_devices
+        self.device_selector.blockSignals(True)
+        self.device_selector.clear()
+
+        for name, url in self.devices.items():
+            display_name = f"{name} ({url})"
+            self.device_selector.addItem(display_name, url)
+
+        self.device_selector.blockSignals(False)
+
+        # 恢复原来的选择
+        index = self.device_selector.findText(current_selection)
+        if index != -1:
+            self.device_selector.setCurrentIndex(index)
+        else:
+            self.device_selector.setCurrentIndex(0)
+
+    def add_manual_device(self):
+        text, ok = QInputDialog.getText(self, "添加设备", "请输入 IP:端口（如 192.168.1.88:8010）")
+        if ok and text:
+            try:
+                ip, port = text.strip().split(":")
+                url = f"https://{ip}:{port}"
+                name = f"手动设备 {ip}"
+                self.manual_devices[name] = url  # ✅ 保存到手动设备列表
+                self.devices[name] = url
+                self.device_selector.addItem(f"{name} ({url})", url)
+                QMessageBox.information(self, "成功", f"已添加设备：{name}")
+            except Exception:
+                QMessageBox.warning(self, "格式错误", "请输入正确格式：IP:端口")
