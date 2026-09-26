@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# 本地运行生成的文件
+backend/config.json
+frontend/config.json
+backend/*.pem
+backend/logs/

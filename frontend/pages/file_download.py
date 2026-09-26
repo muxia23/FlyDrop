@@ -21,12 +21,25 @@ from frontend.threads.downloader import FileDownloadThread  # 前端的下载线
 import requests # 用于向后端发送 HTTP 请求
 import os       # 用于处理本地文件路径
 import uuid     # 用于生成唯一ID
+from urllib.parse import unquote
+from frontend.threads.request_worker import error_message
+
+
+def format_size(size: int) -> str:
+    """把字节数格式化为易读的大小"""
+    for unit in ("B", "KB", "MB", "GB"):
+        if size < 1024: return f"{size:.0f} {unit}" if unit == "B" else f"{size:.1f} {unit}"
+        size /= 1024
+    return f"{size:.1f} TB"
 
 class FileDownloadPage(QWidget):
     """
     文件浏览和下载页面 (Frontend Page)。
     负责与用户交互，向后端请求数据，并展示结果。
     """
+    device_changed = Signal(str, str)  # 当前设备 URL, 显示名称
+    settings_saved = Signal()          # 设置对话框保存后发出
+
     def __init__(self):
         """初始化页面组件和状态"""
         super().__init__()
@@ -41,7 +54,8 @@ class FileDownloadPage(QWidget):
 
         # -- 界面控件 --
         self.tree = QTreeWidget()
-        self.tree.setHeaderLabels(["文件名"])
+        self.tree.setHeaderLabels(["文件名", "大小"])
+        self.tree.setColumnWidth(0, 600)
         self.tree.itemExpanded.connect(self.expand_directory) # 展开文件夹时加载内容
         self.tree.setSelectionMode(QTreeWidget.ExtendedSelection) # 允许多选
 
@@ -96,6 +110,8 @@ class FileDownloadPage(QWidget):
         if ip_url and ip_url != self.base_url:
             self.base_url = ip_url # 更新目标后端 URL
             self.refresh_root()    # 刷新文件列表
+        if ip_url:
+            self.device_changed.emit(ip_url, self.device_selector.itemText(index))
 
     def refresh_root(self):
         """刷新文件树的根目录"""
@@ -129,7 +145,8 @@ class FileDownloadPage(QWidget):
                 file_path = item_data["path"]
                 if not self.show_hidden and name.startswith("."): continue
 
-                tree_item = QTreeWidgetItem([name])
+                size = item_data.get("size")
+                tree_item = QTreeWidgetItem([name, format_size(size) if item_data["type"] == "file" and size is not None else ""])
                 tree_item.setData(0, Qt.UserRole, file_path) # 存储后端提供的路径
 
                 if item_data["type"] == "dir":
@@ -140,7 +157,7 @@ class FileDownloadPage(QWidget):
                 else: self.tree.addTopLevelItem(tree_item)
 
         except requests.exceptions.RequestException as e:
-            QMessageBox.critical(self, "加载失败", f"无法从 {self.base_url} 加载列表。\n错误: {e}")
+            QMessageBox.critical(self, "加载失败", f"无法从 {self.base_url} 加载列表。\n错误: {error_message(e)}")
             # 在界面上显示错误提示
             err_node = QTreeWidgetItem([f"加载失败: {type(e).__name__}"])
             if parent: parent.addChild(err_node)
@@ -183,7 +200,12 @@ class FileDownloadPage(QWidget):
              QMessageBox.warning(self, "错误", "未选择有效的设备 URL")
              return
 
-        for item in items:
+        file_items = [i for i in items if i.data(0, Qt.UserRole) and i.childIndicatorPolicy() != QTreeWidgetItem.ShowIndicator]
+        if not file_items:
+            QMessageBox.information(self, "提示", "选中的是文件夹，请使用“打包下载”下载文件夹")
+            return
+
+        for item in file_items:
             file_path = item.data(0, Qt.UserRole) # 这是后端需要的相对路径
             name = item.text(0) # 文件名，用于本地保存
 
@@ -285,9 +307,16 @@ class FileDownloadPage(QWidget):
         dialog = SettingsDialog(self)
         if dialog.exec():
             self.config = get_settings() # 重新加载前端配置
-            self.base_url = self.config.get("base_url", "https://localhost:8010")
             self.access_password = self.config.get("access_password", "")
             self.update_devices({}) # 更新设备列表（可能改变本机 URL）
+            self.fetch_devices()
+            # 让当前目标与下拉框保持一致，并用新配置重新加载
+            index = self.device_selector.currentIndex()
+            if index != -1:
+                self.base_url = self.device_selector.itemData(index)
+                self.refresh_root()
+                self.device_changed.emit(self.base_url, self.device_selector.itemText(index))
+            self.settings_saved.emit()
 
     def download_zip(self):
         """用户点击“打包下载”按钮"""
@@ -299,22 +328,27 @@ class FileDownloadPage(QWidget):
              QMessageBox.warning(self, "错误", "未选择有效的设备 URL")
              return
 
-        paths = [item.data(0, Qt.UserRole) for item in items] # 获取选中的后端路径
+        paths = [item.data(0, Qt.UserRole) for item in items if item.data(0, Qt.UserRole)] # 获取选中的后端路径
+        if not paths:
+            QMessageBox.warning(self, "未选择", "请选择要打包下载的文件或文件夹")
+            return
 
         # --- 前端职责：向后端打包接口发送请求 ---
         url = f"{self.base_url}/api/files/zip"
         headers = {"Authorization": self.access_password}
-        params = {"paths": ",".join(paths)}
+        params = {"paths": paths} # 以多个 paths 参数传递，文件名中的逗号不会出错
         progress = None
 
         try:
-            # 请求后端生成并开始传输 Zip 流
+            # 请求后端生成并开始传输 Zip 流（打包期间显示等待光标）
+            QApplication.setOverrideCursor(Qt.WaitCursor)
             response = requests.get(url, params=params, headers=headers, stream=True, verify=False, timeout=(10, 600))
             response.raise_for_status()
+            QApplication.restoreOverrideCursor()
 
             # --- 前端职责：获取文件名，准备本地保存 ---
             content_disposition = response.headers.get("Content-Disposition", "")
-            zip_filename = response.headers.get("X-Zip-Filename") # 优先使用后端指定的头
+            zip_filename = unquote(response.headers.get("X-Zip-Filename", "")) # 优先使用后端指定的头
             if not zip_filename and "filename=" in content_disposition:
                  filename_part = content_disposition.split("filename=")[1]
                  if filename_part: zip_filename = filename_part.strip('" ')
@@ -350,19 +384,21 @@ class FileDownloadPage(QWidget):
             QMessageBox.information(self, "下载完成", f"打包文件 '{zip_filename}' 已保存到:\n{save_path}")
 
         except requests.exceptions.RequestException as e:
-            QMessageBox.critical(self, "打包失败", f"请求打包文件失败: {e}")
+            QMessageBox.critical(self, "打包失败", f"请求打包文件失败: {error_message(e)}")
         except Exception as e:
             print(f"[Download Zip] Unexpected Error: {e}")
             traceback.print_exc()
             QMessageBox.critical(self, "打包失败", f"处理打包下载时发生未知错误: {e}")
         finally:
             if progress: progress.close() # 确保关闭进度条
+            while QApplication.overrideCursor(): QApplication.restoreOverrideCursor()
 
 
     def fetch_devices(self):
         """向后端请求已发现的设备列表"""
-        # 通常设备发现服务在本机运行
-        discovery_url = f"https://localhost:{self.config.get('port', 8010)}/api/devices"
+        # 设备发现服务在本机后端运行
+        local_url = self.config.get("base_url", "https://localhost:8010").rstrip("/")
+        discovery_url = f"{local_url}/api/devices"
         try:
             # --- 前端职责：向后端设备接口发送请求 ---
             headers = {"Authorization": self.access_password}
@@ -375,8 +411,12 @@ class FileDownloadPage(QWidget):
             discovered_devices = {}
             for dev in data:
                 if isinstance(dev, dict) and "name" in dev and "ip" in dev:
-                     port = self.config.get('port', 8010)
-                     discovered_devices[dev["name"]] = f"https://{dev['ip']}:{port}"
+                     # 使用对方广播的端口和协议；旧版本后端没有这两个字段时退回本机配置
+                     port = dev.get("port") or self.config.get('port', 8010)
+                     scheme = "http" if dev.get("https") is False else "https"
+                     name = dev["name"]
+                     if name in discovered_devices: name = f"{name} ({dev['ip']})" # 重名设备
+                     discovered_devices[name] = f"{scheme}://{dev['ip']}:{port}"
 
             self.update_devices(discovered_devices) # 更新 UI 列表
 
@@ -406,7 +446,7 @@ class FileDownloadPage(QWidget):
         new_index_to_select = -1
         idx = 0
         for name, url in all_devices.items():
-            display_ip = url.replace('https://', '').split(':')[0]
+            display_ip = url.split('://', 1)[-1].rsplit(':', 1)[0]
             display_name = f"{name} ({display_ip})"
             self.device_selector.addItem(display_name, url) # 显示名称，关联 URL 数据
             if url == current_selection_url: new_index_to_select = idx
@@ -426,6 +466,7 @@ class FileDownloadPage(QWidget):
              new_selected_url = self.device_selector.itemData(new_index_to_select)
              if self.base_url == new_selected_url and not self.tree.topLevelItemCount():
                   self.refresh_root()
+                  self.device_changed.emit(new_selected_url, self.device_selector.itemText(new_index_to_select))
              # 如果 base_url 尚未初始化，则进行初始化
              elif not self.base_url:
                    self.base_url = new_selected_url
@@ -433,13 +474,19 @@ class FileDownloadPage(QWidget):
 
     def add_manual_device(self):
         """弹出对话框，让用户手动输入并添加设备"""
-        text, ok = QInputDialog.getText(self, "添加设备", "请输入 IP:端口（例如 192.168.1.100:8010）:")
+        text, ok = QInputDialog.getText(self, "添加设备", "请输入 IP:端口（例如 192.168.1.100:8010，未开启 HTTPS 的设备请加 http:// 前缀）:")
         if ok and text:
             try:
+                text = text.strip().rstrip("/")
+                scheme = "https"
+                if "://" in text:
+                    scheme, text = text.split("://", 1)
+                    if scheme not in ("http", "https"): raise ValueError("仅支持 http / https")
                 if ':' not in text: raise ValueError("格式错误，缺少端口号")
-                ip, port_str = text.strip().split(":", 1)
+                ip, port_str = text.rsplit(":", 1)
                 port = int(port_str)
-                url = f"https://{ip}:{port}"
+                if not ip or not (1 <= port <= 65535): raise ValueError("IP 或端口无效")
+                url = f"{scheme}://{ip}:{port}"
                 name = f"手动: {ip}"
                 self.manual_devices[name] = url # 存储到手动列表
                 self.update_devices({}) # 更新设备下拉框

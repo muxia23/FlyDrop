@@ -1,11 +1,9 @@
 # 后端依赖
 fastapi
 uvicorn
-pyopenssl
-pyperclip
+cryptography   # 生成 HTTPS 自签名证书（无需系统安装 openssl）
+pyperclip      # 读写系统剪贴板（Linux 需要额外安装 xclip / xsel / wl-clipboard）
 
-# 前端依赖（PySide6）
+# 前端依赖
 PySide6
-
-# 可选：支持 http 请求（前端使用 requests）
 requests
